@@ -10,6 +10,7 @@ namespace dji
     {
         Idle,
         TakingOff,
+        Hovering,
         Flying,
         Landing
     }
@@ -51,6 +52,7 @@ namespace dji
         
         Vector3 commandedVelocity = Vector3.zero;
         float commandedYawRate = 0f;
+        float lastCommandTime = 0f;
 
         MixedBody robotBody;
 
@@ -90,6 +92,7 @@ namespace dji
             RPMsFromMotion();
 
             if (!GotControl) return;
+            
 
             switch(flightState)
             {
@@ -119,6 +122,13 @@ namespace dji
                     break;
 
                 case DroneFlightState.Flying:
+                    // if we haven't received a command in a while, station keep still in the air
+                    float timeout = 0.2f;
+                    if (Time.time - lastCommandTime > timeout)
+                    {   
+                        Hover();
+                        break;
+                    }
                     horizCtrl.ControlMode = HorizontalControlMode.Velocity;
                     horizCtrl.TargetVelocity = commandedVelocity;
 
@@ -127,13 +137,26 @@ namespace dji
 
                     attCtrl.YawControlMode = YawControlMode.YawRate;
                     attCtrl.TargetYawRate = commandedYawRate;
-
                     break;
                 case DroneFlightState.Idle:
+                case DroneFlightState.Hovering:
                 default:
                     // do nothing
                     break;
             }
+        }
+
+        void Hover()
+        {
+            horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
+            horizCtrl.TargetUnityPosition = robotBody.position;
+
+            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+            altCtrl.TargetAltitude = robotBody.position.y;
+
+            attCtrl.YawControlMode = YawControlMode.YawRate;
+            attCtrl.TargetYawRate = 0f;
+            flightState = DroneFlightState.Hovering;
         }
 
         public bool TakeOff()
@@ -273,6 +296,8 @@ namespace dji
             // Unity is RUF, do the mapping here.
             commandedVelocity = new Vector3(-left, up, forward);
             commandedYawRate = -yawRate;
+            lastCommandTime = Time.time;
+            flightState = DroneFlightState.Flying;
         }
     }
 }
