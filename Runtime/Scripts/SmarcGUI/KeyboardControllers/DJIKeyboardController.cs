@@ -8,14 +8,13 @@ namespace SmarcGUI.KeyboardControllers
     [RequireComponent(typeof(DJIController))]
     public class DJIKeyboardController : KeyboardControllerBase
     {
-        InputAction forwardAction, strafeAction, verticalAction, tvAction;
+        InputAction forwardAction, strafeAction, tvAction;
         DJIController djiCtrl;
 
         void Awake()
         {
             forwardAction = InputSystem.actions.FindAction("Robot/Forward");
             strafeAction = InputSystem.actions.FindAction("Robot/Strafe");
-            verticalAction = InputSystem.actions.FindAction("Robot/UpDown");
             tvAction = InputSystem.actions.FindAction("Robot/ThrustVector");
             
             djiCtrl = GetComponent<DJIController>();
@@ -31,7 +30,7 @@ namespace SmarcGUI.KeyboardControllers
             var strafeValue = strafeAction.ReadValue<float>();
             var tvValue = tvAction.ReadValue<Vector2>();
             var yawValue = -tvValue.x;
-            var verticalValue = verticalAction.ReadValue<float>();
+            var verticalValue = tvValue.y;
 
             if (Mathf.Abs(forwardValue) != 0 || Mathf.Abs(strafeValue) != 0 || Mathf.Abs(verticalValue) != 0 || Mathf.Abs(yawValue) != 0)
             {
