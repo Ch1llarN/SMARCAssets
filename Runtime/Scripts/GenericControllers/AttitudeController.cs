@@ -1,7 +1,6 @@
 using UnityEngine;
 using Force;
-using UnityEngine.InputSystem;
-
+using System.Collections.Generic;
 
 namespace Smarc.GenericControllers
 {
@@ -109,7 +108,13 @@ namespace Smarc.GenericControllers
 
             // so far we just did tilt control, finally add the yaw.
             angVel += Mathf.Deg2Rad * TargetYawRate * Vector3.up;
-            robotBody.angularVelocity = angVel;
+
+            // we cant just set the velocity, because physics downstream break when you do... instead we have to add torque to achieve the desired velocity
+            Vector3 currentVel = robotBody.angularVelocity;
+            Vector3 neededAccel = (angVel - currentVel) / Time.fixedDeltaTime;
+            robotBody.AddTorque(neededAccel, ForceMode.Acceleration);
+
+            // robotBody.angularVelocity = angVel;
         }
 
         Vector3 TiltControl()

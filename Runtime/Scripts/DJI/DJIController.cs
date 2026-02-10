@@ -97,30 +97,11 @@ namespace dji
             switch(flightState)
             {
                 case DroneFlightState.TakingOff:
-                    altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
-                    altCtrl.TargetAltitude = homeAltitude + takeOffAltitude;
-                    if (robotBody.position.y >= altCtrl.TargetAltitude - altCtrl.AltitudeTolerance)
-                    {
-                        flightState = DroneFlightState.Flying;
-                        Debug.Log("Takeoff complete, now flying");
-                    }
+                    TakingOff();
                     break;
-
                 case DroneFlightState.Landing:
-                    altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-                    altCtrl.TargetVelocity = -altCtrl.DescentRate;
-                    bool stopped = Mathf.Abs(robotBody.velocity.y) <= 0.2f;
-                    if (stopped) stoppedFor += Time.fixedDeltaTime;
-                    else stoppedFor = 0f;
-                    bool stuck = stoppedFor >= 1.0f; // if we've been stopped for 1 second, consider ourselves stuck
-                    if (stuck)
-                    {
-                        flightState = DroneFlightState.Idle;
-                        Debug.Log("Landing complete, now idle");
-                        Ignition(false);
-                    }
+                    Landing();
                     break;
-
                 case DroneFlightState.Flying:
                     // if we haven't received a command in a while, station keep still in the air
                     float timeout = 0.2f;
@@ -129,14 +110,7 @@ namespace dji
                         Hover();
                         break;
                     }
-                    horizCtrl.ControlMode = HorizontalControlMode.Velocity;
-                    horizCtrl.TargetVelocity = commandedVelocity;
-
-                    altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-                    altCtrl.TargetVelocity = commandedVelocity.y;
-
-                    attCtrl.YawControlMode = YawControlMode.YawRate;
-                    attCtrl.TargetYawRate = commandedYawRate;
+                    CommandVelocities();
                     break;
                 case DroneFlightState.Idle:
                 case DroneFlightState.Hovering:
@@ -146,17 +120,66 @@ namespace dji
             }
         }
 
+        void TakingOff()
+        {
+            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+            altCtrl.TargetAltitude = homeAltitude + takeOffAltitude;
+            if (robotBody.position.y >= altCtrl.TargetAltitude - altCtrl.AltitudeTolerance)
+            {
+                flightState = DroneFlightState.Flying;
+                Debug.Log("Takeoff complete, now flying");
+            }
+        }
+
+        void Landing()
+        {
+            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
+            altCtrl.TargetVelocity = -altCtrl.DescentRate;
+            bool stopped = Mathf.Abs(robotBody.velocity.y) <= 0.2f;
+            if (stopped) stoppedFor += Time.fixedDeltaTime;
+            else stoppedFor = 0f;
+            bool stuck = stoppedFor >= 1.0f; // if we've been stopped for 1 second, consider ourselves stuck
+            if (stuck)
+            {
+                flightState = DroneFlightState.Idle;
+                Debug.Log("Landing complete, now idle");
+                Ignition(false);
+            }
+        }
+
         void Hover()
         {
-            horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
-            horizCtrl.TargetUnityPosition = robotBody.position;
+            Vector3 horizontalVelocity = new(robotBody.velocity.x, 0f, robotBody.velocity.z);
+            if (horizontalVelocity.magnitude > 0.1f)
+            {
+                horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+                horizCtrl.TargetVelocity = Vector3.zero;
+            }
+            else
+            {
+                horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
+                horizCtrl.TargetUnityPosition = robotBody.position;
+            }
 
             altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
             altCtrl.TargetAltitude = robotBody.position.y;
 
             attCtrl.YawControlMode = YawControlMode.YawRate;
             attCtrl.TargetYawRate = 0f;
-            flightState = DroneFlightState.Hovering;
+
+            if (robotBody.velocity.magnitude <= 0.1f) flightState = DroneFlightState.Hovering;
+        }
+
+        void CommandVelocities()
+        {
+            horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+            horizCtrl.TargetVelocity = commandedVelocity;
+
+            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
+            altCtrl.TargetVelocity = commandedVelocity.y;
+
+            attCtrl.YawControlMode = YawControlMode.YawRate;
+            attCtrl.TargetYawRate = commandedYawRate;
         }
 
         public bool TakeOff()
@@ -298,6 +321,11 @@ namespace dji
             commandedYawRate = -yawRate;
             lastCommandTime = Time.time;
             flightState = DroneFlightState.Flying;
+        }
+
+        public void CommandFLUYawRate01(float forward, float left, float up, float yawRate)
+        {
+            CommandFLUYawRate(forward * horizCtrl.MaxSpeed, left * horizCtrl.MaxSpeed, up * altCtrl.AscentRate, yawRate * attCtrl.DesiredYawRate);
         }
     }
 }

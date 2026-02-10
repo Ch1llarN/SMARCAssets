@@ -30,12 +30,12 @@ namespace SmarcGUI.KeyboardControllers
             var forwardValue = forwardAction.ReadValue<float>();
             var strafeValue = strafeAction.ReadValue<float>();
             var tvValue = tvAction.ReadValue<Vector2>();
-            var yawValue = tvValue.x;
+            var yawValue = -tvValue.x;
             var verticalValue = verticalAction.ReadValue<float>();
 
             if (Mathf.Abs(forwardValue) != 0 || Mathf.Abs(strafeValue) != 0 || Mathf.Abs(verticalValue) != 0 || Mathf.Abs(yawValue) != 0)
             {
-                djiCtrl.CommandFLUYawRate(forwardValue, -strafeValue, verticalValue, yawValue);
+                djiCtrl.CommandFLUYawRate01(forwardValue, -strafeValue, verticalValue, yawValue);
             }
         }
 
