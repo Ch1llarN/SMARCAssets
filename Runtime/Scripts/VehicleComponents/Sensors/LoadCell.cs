@@ -1,26 +1,40 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace VehicleComponents.Sensors
 {
     [AddComponentMenu("Smarc/Sensor/LoadCell")]
-    [RequireComponent(typeof(Joint))]
     public class LoadCell : Sensor
     {
         [Header("LoadCell")]
         public float Force;
         public float Weight;
-        Joint joint;
+        public Joint joint;
+        public ArticulationBody body;
 
-        void Start()
-        {
-            joint = GetComponent<Joint>();
-        }
 
         public override bool UpdateSensor(double deltaTime)
         {
-            Force = joint.currentForce.magnitude;
-            Weight = Force / Physics.gravity.magnitude;
-            return true;
+            if (body != null)
+            {
+                List<float> forces = new();
+                body.GetDriveForces(forces);
+                Force = 0f;
+                for (int i = 1; i < forces.Count; i++)
+                    Force += forces[i];
+                Weight = Force / Physics.gravity.magnitude;
+                return true;
+            }
+
+            if (joint != null)
+            {
+                Force = joint.currentForce.magnitude;
+                Weight = Force / Physics.gravity.magnitude;
+                return true;
+            }
+
+            return false;
+
         }
 
     }
