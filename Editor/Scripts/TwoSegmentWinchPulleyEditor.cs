@@ -5,15 +5,15 @@ using Rope;
 
 namespace Editor.Scripts
 {
-    [CustomEditor(typeof(TwoSegmentWinch))]
-    public class TwoSegmentWinchEditor : UnityEditor.Editor
+    [CustomEditor(typeof(TwoSegmentWinchPulley))]
+    public class TwoSegmentWinchPulleyEditor : UnityEditor.Editor
     {
-        TwoSegmentWinch container;
+        TwoSegmentWinchPulley container;
 
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
-            container = (TwoSegmentWinch)target;
+            container = (TwoSegmentWinchPulley)target;
 
             if (GUILayout.Button("ApplySettings"))
             {
