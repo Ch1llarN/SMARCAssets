@@ -39,8 +39,14 @@ namespace Rope
 
         void Awake()
         {
+            // Make sure the targets start at 0, so that they dont snap and break physics.
+            // The lower/upper limits are set by ApplySettings assuming their starting position is at 0 already.
             midPrismaticDrive = MiddlePrismatic.xDrive;
+            midPrismaticDrive.target = 0f;
+            MiddlePrismatic.xDrive = midPrismaticDrive;
             endPrismaticDrive = EndPrismatic.xDrive;
+            endPrismaticDrive.target = 0f;
+            EndPrismatic.xDrive = endPrismaticDrive;
 
             // Ignore all self-collisions in the winch
             Collider[] colliders = GetComponentsInChildren<Collider>();

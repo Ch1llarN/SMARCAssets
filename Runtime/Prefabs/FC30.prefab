@@ -93,10 +93,10 @@ ArticulationBody:
     upperLimit: 0.625
     stiffness: 0
     damping: 0
-    forceLimit: 0
-    target: 0.625
+    forceLimit: 3.402823e+38
+    target: 0
     targetVelocity: 0
-    driveType: 0
+    driveType: 2
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
@@ -2502,10 +2502,10 @@ ArticulationBody:
     upperLimit: 0.625
     stiffness: 0
     damping: 0
-    forceLimit: 0
-    target: 0.625
+    forceLimit: 3.402823e+38
+    target: 0
     targetVelocity: 0
-    driveType: 0
+    driveType: 2
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
@@ -3918,7 +3918,7 @@ ArticulationBody:
     upperLimit: 1.5
     stiffness: 0
     damping: 0
-    forceLimit: 3.4028235e+38
+    forceLimit: 3.402823e+38
     target: 0
     targetVelocity: 0
     driveType: 2
@@ -4374,10 +4374,10 @@ ArticulationBody:
     upperLimit: 0.625
     stiffness: 0
     damping: 0
-    forceLimit: 0
-    target: 0.625
+    forceLimit: 3.402823e+38
+    target: 0
     targetVelocity: 0
-    driveType: 0
+    driveType: 2
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
@@ -6568,7 +6568,7 @@ ArticulationBody:
     upperLimit: 1.5
     stiffness: 0
     damping: 0
-    forceLimit: 3.4028235e+38
+    forceLimit: 3.402823e+38
     target: 0
     targetVelocity: 0
     driveType: 2
@@ -7719,10 +7719,10 @@ ArticulationBody:
     upperLimit: 0.625
     stiffness: 0
     damping: 0
-    forceLimit: 0
-    target: 0.625
+    forceLimit: 3.402823e+38
+    target: 0
     targetVelocity: 0
-    driveType: 0
+    driveType: 2
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0

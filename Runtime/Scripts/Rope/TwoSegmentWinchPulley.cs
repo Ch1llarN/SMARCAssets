@@ -57,8 +57,8 @@ namespace Rope
                 speed = 0f;
             }
 
-            WinchOne.PullSpeed = speed;
-            WinchTwo.PullSpeed = -speed;
+            WinchOne.PullSpeed = -speed;
+            WinchTwo.PullSpeed = speed;
             
         }
     }
