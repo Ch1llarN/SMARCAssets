@@ -1,6 +1,5 @@
 using UnityEngine;
 using Force;
-using UnityEngine.InputSystem;
 
 
 namespace Smarc.GenericControllers
@@ -21,6 +20,8 @@ namespace Smarc.GenericControllers
         public AltitudeControlMode ControlMode = AltitudeControlMode.AbsoluteAltitude;
         [Tooltip("If true, controller will add force to compensate for gravity, this makes the robot float by default")]
         public bool CompensateGravity = true;
+        [Tooltip("If true, the total mass and COM calculations will include all child rigidbodies/articulation bodies. If your robot is very complex, the controller might behave funny.")]
+        public bool IncludeChildren = false;
 
         public float AscentRate = 2.0f;
         public float DescentRate = 2.0f;
@@ -55,8 +56,8 @@ namespace Smarc.GenericControllers
         {
             robotBody = new MixedBody(RobotAB, RobotRB);
             velPID = new PID(VelKp, VelKi, VelKd, VelIntegratorLimit, maxOutput: MaxForce);
-            totalMass = robotBody.GetTotalConnectedMass();
-            var globalCom = robotBody.GetTotalConnectedCenterOfMass();
+            totalMass = robotBody.GetTotalConnectedMass(includeChildren:IncludeChildren);
+            var globalCom = robotBody.GetTotalConnectedCenterOfMass(includeChildren:IncludeChildren);
             COM = new GameObject("AltitudeController_COM").transform;
             COM.parent = robotBody.transform;
             COM.position = globalCom;

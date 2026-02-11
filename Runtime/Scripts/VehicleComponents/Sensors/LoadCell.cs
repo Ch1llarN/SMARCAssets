@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace VehicleComponents.Sensors
@@ -17,12 +17,24 @@ namespace VehicleComponents.Sensors
         {
             if (body != null)
             {
-                List<float> forces = new();
-                body.GetDriveForces(forces);
-                Force = 0f;
-                for (int i = 1; i < forces.Count; i++)
-                    Force += forces[i];
+                var parent = body.transform.parent;
+                if (!parent)
+                {
+                    Force = 0;
+                    Weight = 0;
+                    return false;    
+                } 
+                ArticulationReducedSpace forces = body.driveForce;
+                if (forces.dofCount > 1)
+                {
+                    Debug.LogWarning($"LoadCell only supports 1 DOF joints (prismatic, revolute), but joint has {forces.dofCount} DOFs.");
+                    Force = 0;
+                    Weight = 0;
+                    return false;
+                }
+                Force = forces[0];
                 Weight = Force / Physics.gravity.magnitude;
+                
                 return true;
             }
 

@@ -169,7 +169,7 @@ namespace Force
         /// Get the total mass of the entire connected articulation body chain.
         /// Crawls the entire articulation tree, so be careful running this in updates...
         /// </summary>
-        public float GetTotalConnectedMass(bool ignoreNonGravityBodies = true)
+        public float GetTotalConnectedMass(bool includeChildren = true, bool ignoreNonGravityBodies = true)
         {
             // too much hassle to follow through an arbitrary system
             // of rigidbodies and joints...
@@ -177,6 +177,7 @@ namespace Force
 
             if (childrenABs == null) childrenABs = ab.GetComponentsInChildren<ArticulationBody>();
             float totalMass = ab.mass;
+            if (!includeChildren) return totalMass;
             foreach (var body in childrenABs)
             {
                 if (body == ab) continue;
