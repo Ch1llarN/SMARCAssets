@@ -1,6 +1,7 @@
 using UnityEngine;
 using Force;
 using DefaultNamespace.Water;
+using VehicleComponents.Sensors;
 
 
 namespace Smarc.GenericControllers
@@ -22,10 +23,13 @@ namespace Smarc.GenericControllers
         public AltitudeControlMode ControlMode = AltitudeControlMode.AbsoluteAltitude;
         [Tooltip("If true, the controller will only apply altitude control when the robot is moving forward.")]
         public bool OnlyIfMovingForward = false;
-        [Tooltip("If true, controller will add force to compensate for gravity, this makes the robot float by default")]
+        [Tooltip("If true, gravity compensation will be applied before control.")]
         public bool CompensateGravity = true;
-        [Tooltip("If true, the total mass and COM calculations will include all child rigidbodies/articulation bodies. If your robot is very complex, the controller might behave funny.")]
-        public bool IncludeChildren = false;
+        [Tooltip("If true, the COM calculations will include all child rigidbodies/articulation bodies. If your robot is very complex, the controller might behave funny.")]
+        public bool IncludeChildrenInCom = false;
+        [Tooltip("If true, the mass of all children will be negated before control is applied.")]
+        public bool IncludeChildrenInGravityComp = false;
+
 
         public float AscentRate = 2.0f;
         public float DescentRate = 2.0f;
@@ -61,8 +65,8 @@ namespace Smarc.GenericControllers
         {
             robotBody = new MixedBody(RobotAB, RobotRB);
             velPID = new PID(VelKp, VelKi, VelKd, VelIntegratorLimit, maxOutput: MaxForce);
-            totalMass = robotBody.GetTotalConnectedMass(includeChildren:IncludeChildren);
-            var globalCom = robotBody.GetTotalConnectedCenterOfMass(includeChildren:IncludeChildren);
+            totalMass = robotBody.GetTotalConnectedMass(includeChildren:IncludeChildrenInGravityComp);
+            var globalCom = robotBody.GetTotalConnectedCenterOfMass(includeChildren:IncludeChildrenInCom);
             COM = new GameObject("AltitudeController_COM").transform;
             COM.parent = robotBody.transform;
             COM.position = globalCom;
@@ -113,7 +117,8 @@ namespace Smarc.GenericControllers
             float pidAcc = velPID.Update(TargetVelocity, currentVel, Time.fixedDeltaTime);
             pidAcc = LimitAccelation(pidAcc, currentVel, Time.fixedDeltaTime);
 
-            float requiredForce = CompensateGravity ? pidAcc + totalMass * -Physics.gravity.y : pidAcc;
+            float requiredForce = pidAcc;
+            if (CompensateGravity) requiredForce += totalMass * -Physics.gravity.y;
             requiredForce = MaxForce > 0f ? Mathf.Clamp(requiredForce, -MaxForce, MaxForce) : requiredForce;
 
             Vector3 upForce = Vector3.up * requiredForce;
