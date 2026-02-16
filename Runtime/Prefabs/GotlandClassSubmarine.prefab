@@ -20157,7 +20157,7 @@ GameObject:
   - component: {fileID: 4300867291043819712}
   - component: {fileID: 7390400722584722238}
   m_Layer: 0
-  m_Name: gotland_class_submarine
+  m_Name: GotlandClassSubmarine
   m_TagString: robot
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

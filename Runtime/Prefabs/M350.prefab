@@ -277,7 +277,7 @@ GameObject:
   - component: {fileID: 8783040589133010773}
   - component: {fileID: 4016737064677842381}
   m_Layer: 0
-  m_Name: m350_v1
+  m_Name: M350
   m_TagString: robot
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

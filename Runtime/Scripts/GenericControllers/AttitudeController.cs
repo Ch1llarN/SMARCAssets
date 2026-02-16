@@ -33,6 +33,8 @@ namespace Smarc.GenericControllers
         [Header("Yaw Rate Controller")]
         public YawControlMode YawControlMode = YawControlMode.CompassHeading;
         public float TargetYawRate = 5.0f; // Target yaw rate in degrees per second
+        [Tooltip("If true, the controller will only apply yaw control when the robot is moving (to avoid spinning in place)")]
+        public bool OnlyIfMovingForward = false;
 
         [Header("Compass Heading Controller")]
         public float TargetCompassHeading = 0.0f; // Target heading in degrees
@@ -42,6 +44,10 @@ namespace Smarc.GenericControllers
 
         [Header("Tilt Controller")]
         public TiltMode TiltMode = TiltMode.TargetUp;
+        [Range(-1,1), Tooltip("-1/1 to define the direction of positive pitch/roll, 0 to ignore that axis")]
+        public int PitchDirection = 1;
+        [Range(-1,1), Tooltip("-1/1 to define the direction of positive pitch/roll, 0 to ignore that axis")]
+        public int RollDirection = 1;
         public Vector3 TargetUp = Vector3.up;
         public float TiltKp = 1.5f;
 
@@ -68,28 +74,46 @@ namespace Smarc.GenericControllers
 
             if (TiltMode == TiltMode.ReactToAcceleration && upDot >= upDotLimit)
             {
-                Vector3 appliedForce = horizontalController.LastAppliedForce;
-                appliedForce.y = 0; // should already be, but just to be safe
-                float mag = appliedForce.magnitude;
-                float targetTiltAngle = 0f;
-                if (mag > 0.05f)
+                if (RollDirection == 0 && PitchDirection == 0)
                 {
-                    targetTiltAngle = Mathf.Clamp(mag, -ExpectedMaxAccel, ExpectedMaxAccel) / ExpectedMaxAccel * MaxTiltAngle;
+                    TargetUp = Vector3.up;
                 }
-            
-                // keep the target angle within -180 to 180 range
-                if (Mathf.Abs(targetTiltAngle) > 180f) targetTiltAngle -= Mathf.Sign(targetTiltAngle) * 360f;
+                else
+                {
+                    Vector3 appliedForce = horizontalController.LastAppliedForce;
+                    appliedForce.y = 0; // should already be, but just to be safe
+                    if(RollDirection != 0 || PitchDirection != 0)
+                    {
+                        Vector3 localAppliedForce = horizontalController.LastAppliedForceLocal;
+                        localAppliedForce.x *= RollDirection;
+                        localAppliedForce.z *= PitchDirection;
+                        appliedForce = robotBody.transform.TransformVector(localAppliedForce);
+                        appliedForce.y = 0;
+                    }
+                    float mag = appliedForce.magnitude;
+                    float targetTiltAngle = 0f;
+                    if (mag > 0.05f)
+                    {
+                        targetTiltAngle = Mathf.Clamp(mag, -ExpectedMaxAccel, ExpectedMaxAccel) / ExpectedMaxAccel * MaxTiltAngle;
+                    }
+                
+                    // keep the target angle within -180 to 180 range
+                    if (Mathf.Abs(targetTiltAngle) > 180f) targetTiltAngle -= Mathf.Sign(targetTiltAngle) * 360f;
 
-                Vector3 tiltAxis = Vector3.Cross(Vector3.up, appliedForce.normalized);
-                Quaternion targetRotation = Quaternion.AngleAxis(targetTiltAngle, tiltAxis);
-                TargetUp = targetRotation * Vector3.up;
+                    Vector3 tiltAxis = Vector3.Cross(Vector3.up, appliedForce.normalized);
+                    Quaternion targetRotation = Quaternion.AngleAxis(targetTiltAngle, tiltAxis);
+                    TargetUp = targetRotation * Vector3.up;
+                }
             }
+
 
             // if the robot is too tilted, just try to upright it first
             if (upDot < upDotLimit) TargetUp = Vector3.up;
+
             
             angVel += TiltControl();
 
+            
             // check if the robot is upright enough to control the yaw of
             if (upDot < upDotLimit)
             {
@@ -105,6 +129,12 @@ namespace Smarc.GenericControllers
                 if (Mathf.Abs(angleDifference) <= YawTolerance) TargetYawRate = 0f;
                 else TargetYawRate = Mathf.Sign(angleDifference) * DesiredYawRate;
             }
+
+            if (OnlyIfMovingForward)
+            {
+                if (Mathf.Abs(robotBody.localVelocity.z) < 0.1f) TargetYawRate = 0f;
+            }
+
 
             // so far we just did tilt control, finally add the yaw.
             angVel += Mathf.Deg2Rad * TargetYawRate * Vector3.up;

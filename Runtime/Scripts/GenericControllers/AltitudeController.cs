@@ -1,5 +1,6 @@
 using UnityEngine;
 using Force;
+using DefaultNamespace.Water;
 
 
 namespace Smarc.GenericControllers
@@ -7,7 +8,8 @@ namespace Smarc.GenericControllers
     public enum AltitudeControlMode
     {
         AbsoluteAltitude,
-        VerticalVelocity
+        VerticalVelocity,
+        AltitudeFromWater
     }
 
     [AddComponentMenu("Smarc/Generic Controllers/Altitude Controller")]
@@ -18,6 +20,8 @@ namespace Smarc.GenericControllers
         private MixedBody robotBody;
 
         public AltitudeControlMode ControlMode = AltitudeControlMode.AbsoluteAltitude;
+        [Tooltip("If true, the controller will only apply altitude control when the robot is moving forward.")]
+        public bool OnlyIfMovingForward = false;
         [Tooltip("If true, controller will add force to compensate for gravity, this makes the robot float by default")]
         public bool CompensateGravity = true;
         [Tooltip("If true, the total mass and COM calculations will include all child rigidbodies/articulation bodies. If your robot is very complex, the controller might behave funny.")]
@@ -50,6 +54,7 @@ namespace Smarc.GenericControllers
         Transform COM;
         float totalMass;
 
+        WaterQueryModel waterModel;
 
 
         void Start()
@@ -65,9 +70,25 @@ namespace Smarc.GenericControllers
 
         void FixedUpdate()
         {
+            if (OnlyIfMovingForward)
+            {
+                if (Mathf.Abs(robotBody.localVelocity.z) < 0.1f) return;
+            }
+
             if (ControlMode == AltitudeControlMode.AbsoluteAltitude)
             {
                 float diff = TargetAltitude - (robotBody.transform.position.y - GroundLevel);
+                if (Mathf.Abs(diff) <= AltitudeTolerance) TargetVelocity = 0f;
+                else TargetVelocity = Mathf.Sign(diff) * ((diff > 0) ? AscentRate : DescentRate);
+            }
+            
+            if (ControlMode == AltitudeControlMode.AltitudeFromWater)
+            {
+                if (waterModel == null) waterModel = WaterQueryModel.GetWaterQueryModel();
+                
+                float waterHeight = waterModel.GetWaterLevelAt(robotBody.transform.position);
+                float currentAltitudeFromWater = robotBody.transform.position.y - waterHeight;
+                float diff = TargetAltitude - currentAltitudeFromWater;
                 if (Mathf.Abs(diff) <= AltitudeTolerance) TargetVelocity = 0f;
                 else TargetVelocity = Mathf.Sign(diff) * ((diff > 0) ? AscentRate : DescentRate);
             }

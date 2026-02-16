@@ -37,6 +37,7 @@ namespace SmarcGUI.MissionPlanning.Tasks
         public Task()
         {
             Params = new Dictionary<string, object>();
+            Params.Add("timeout", -1);
             SetParams();
             OnTaskModified();
         }

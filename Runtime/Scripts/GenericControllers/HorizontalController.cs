@@ -37,6 +37,7 @@ namespace Smarc.GenericControllers
         PID velPID;
         
         public Vector3 LastAppliedForce { get; private set; }
+        public Vector3 LastAppliedForceLocal {get; private set;}
 
 
 
@@ -103,6 +104,8 @@ namespace Smarc.GenericControllers
             Vector3 force = velPID.UpdateVector3(TargetVelocity, currentVelocity, Time.fixedDeltaTime);
             force.y = 0;
 
+            LastAppliedForceLocal = force;
+            
             force = robotBody.transform.TransformVector(force);
             robotBody.AddForceAtPosition(force, COM.position, ForceMode.Force);
             LastAppliedForce = force;
