@@ -25,33 +25,37 @@ namespace Rope
 
         public void ApplySettings()
         {
+            // gotta disable/enable because articulation bodies
+            WinchOne.gameObject.SetActive(false);
+            WinchTwo.gameObject.SetActive(false);
             WinchOne.RopeLength = RopeLength;
             WinchTwo.RopeLength = RopeLength;
+
+            Vector3 posOne = GlobalLoadTfOne == null ? transform.position + new Vector3(RopeLength/2, 0f, 0f) : GlobalLoadTfOne.position;
+            Vector3 posTwo = GlobalLoadTfTwo == null ? transform.position + new Vector3(-RopeLength/2, 0f, 0f) : GlobalLoadTfTwo.position;
             
             // first rotate the winches to match the direction towards the targets
-            WinchOne.transform.LookAt(GlobalLoadTfOne);
+            WinchOne.transform.LookAt(posOne);
             WinchOne.transform.Rotate(-90f, 0f, 0f); // because the winches are "negative Y forward"
-            WinchTwo.transform.LookAt(GlobalLoadTfTwo);
+            WinchTwo.transform.LookAt(posTwo);
             WinchTwo.transform.Rotate(-90f, 0f, 0f);
 
             // Then set the starting rope length of winch one
             // to match the distance to the target, limited by the total rope length
             // and give the remaining rope length to winch two
-            var toTargetOne = Vector3.Distance(transform.position, GlobalLoadTfOne.position);
+            var toTargetOne = Vector3.Distance(transform.position, posOne);
             WinchOne.StartingRopeLength = Mathf.Clamp(toTargetOne, WinchOne.MinRopeLength, RopeLength);
             WinchTwo.StartingRopeLength = Mathf.Clamp(RopeLength - WinchOne.StartingRopeLength, WinchTwo.MinRopeLength, RopeLength);
 
             WinchOne.ApplySettings();
             WinchTwo.ApplySettings();
+            WinchOne.gameObject.SetActive(true);
+            WinchTwo.gameObject.SetActive(true);
         }
 
         void Awake()
         {
-            WinchOne.gameObject.SetActive(false);
-            WinchTwo.gameObject.SetActive(false);
-            ApplySettings();
-            WinchOne.gameObject.SetActive(true);
-            WinchTwo.gameObject.SetActive(true);
+            ApplySettings();   
         }
 
         void FixedUpdate()
