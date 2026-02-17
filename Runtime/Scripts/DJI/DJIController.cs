@@ -1,7 +1,9 @@
 using Force;
+using Rope;
 using Smarc.GenericControllers;
 using UnityEngine;
 using VehicleComponents.Actuators;
+using VehicleComponents.Sensors;
 
 namespace dji
 {
@@ -27,6 +29,12 @@ namespace dji
         public bool StartInAir = false;
         public bool GotControl = true;
         public DroneFlightState flightState = DroneFlightState.Idle;
+
+        [Header("Payload")]
+        public LoadCell WinchLoadCell;
+        [Tooltip("If true, the alt. controller will be given this load as extra mass to compensate for.")]
+        public bool CompensateForPayload = true; 
+
 
         [Header("Propellers(Upper)")]
         public Propeller frontLeftPropeller;
@@ -90,6 +98,8 @@ namespace dji
         void FixedUpdate()
         {
             RPMsFromMotion();
+
+            if (CompensateForPayload && WinchLoadCell != null) altCtrl.ExtraMassToCompensate = WinchLoadCell.Weight;
 
             if (!GotControl) return;
             

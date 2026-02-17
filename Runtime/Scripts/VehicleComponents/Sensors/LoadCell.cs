@@ -11,6 +11,7 @@ namespace VehicleComponents.Sensors
         [Header("LoadCell")]
         public bool PositiveOnly = true;
         public int SmoothOverFrames = 5;
+        Queue<float> forceReadings = new();
         public float Force;
         public float Weight;
         public Joint joint;
@@ -21,38 +22,27 @@ namespace VehicleComponents.Sensors
         public override bool UpdateSensor(double deltaTime)
         {
             float instantForce = 0;
-            if (body != null)
+            if (body != null && body.transform.parent != null)
             {
-                var parent = body.transform.parent;
-                if (parent)
-                {
-                    ArticulationReducedSpace forces = body.driveForce;
-                    if (forces.dofCount > 1)
-                    {
-                        Debug.LogWarning($"LoadCell only supports 1 DOF joints (prismatic, revolute), but joint has {forces.dofCount} DOFs.");
-                    }
-                    else
-                    {
-                        instantForce = forces[0];
-                        if (PositiveOnly && instantForce < 0) instantForce = 0;
-                    }
-                }
+                ArticulationReducedSpace forces = body.driveForce;
+                if (forces.dofCount == 1) instantForce = forces[0];
+                else Debug.LogWarning($"LoadCell only supports 1 DOF joints (prismatic, revolute), but joint has {forces.dofCount} DOFs.");
             }
 
-            if (joint != null)
-            {
-                instantForce = joint.currentForce.magnitude;
-                if (PositiveOnly && instantForce < 0) instantForce = 0;
-            }
+            if (joint != null) instantForce = joint.currentForce.magnitude;
 
-            if (instantForce != 0)
-            {
-                Force = instantForce;
-                Weight = Force / Physics.gravity.magnitude;
-                return true;
-            }
+            if (PositiveOnly && instantForce < 0) instantForce = 0;
 
-            return false;
+            forceReadings.Enqueue(instantForce);
+            
+            while (forceReadings.Count > SmoothOverFrames) forceReadings.Dequeue();
+            float averageForce = 0;
+            foreach (float f in forceReadings) averageForce += f;
+            averageForce /= forceReadings.Count;
+
+            Force = averageForce;
+            Weight = Force / Physics.gravity.magnitude;
+            return true;
 
         }
 

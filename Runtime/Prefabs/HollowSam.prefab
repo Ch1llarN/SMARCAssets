@@ -468,7 +468,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3655269401986808645}
-  - component: {fileID: 4877646170320419675}
   - component: {fileID: 4226227319722052185}
   m_Layer: 0
   m_Name: HollowSam
@@ -494,37 +493,6 @@ Transform:
   - {fileID: 4012619176184938757}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4877646170320419675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3188288566151288562}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42619f12072ab7a48b4e19d1fc437781, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  RopeLinkPrefab: {fileID: 8527497976637253487, guid: eebb343a23cba1423be0f5ab11c20e78,
-    type: 3}
-  BuoyPrefab: {fileID: 8815314036595629783, guid: 5a97e4fa48f174295ab159c3c74c63c4,
-    type: 3}
-  RopeMaterial: {fileID: 2100000, guid: 26bbab7733c52ba43accdcce9c5853b3, type: 2}
-  VehicleRopeLinkName: rope_link
-  VehicleBaseLinkName: base_link
-  RopeDiameter: 0.01
-  RopeLength: 3.6
-  GramsPerMeter: 5
-  BuoyGrams: 1
-  RopeCollisionDiameter: 0.05
-  SegmentLength: 0.1
-  RopeTightnessTolerance: 0.02
-  RopeColor: {r: 1, g: 0.41793656, b: 0.015686274, a: 1}
-  DrawGizmos: 0
-  RopeContainer: {fileID: 0}
-  VehicleRopeLink: {fileID: 6423438802033494221}
-  VehicleBaseLink: {fileID: 5794755768824088094}
 --- !u!114 &4226227319722052185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -540,6 +508,8 @@ MonoBehaviour:
   topic: /tf
   NotARobot: 0
   frequency: 10
+  MapFrameTransform: {fileID: 0}
+  tf_prefix: 
 --- !u!1 &3608926467051012628
 GameObject:
   m_ObjectHideFlags: 0

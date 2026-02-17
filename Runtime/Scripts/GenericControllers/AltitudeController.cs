@@ -1,7 +1,6 @@
 using UnityEngine;
 using Force;
 using DefaultNamespace.Water;
-using VehicleComponents.Sensors;
 
 
 namespace Smarc.GenericControllers
@@ -25,6 +24,8 @@ namespace Smarc.GenericControllers
         public bool OnlyIfMovingForward = false;
         [Tooltip("If true, gravity compensation will be applied before control.")]
         public bool CompensateGravity = true;
+        [Min(0), Tooltip("When there is a payload attached, without doing fancy controls.")]
+        public float ExtraMassToCompensate = 0f;
         [Tooltip("If true, the COM calculations will include all child rigidbodies/articulation bodies. If your robot is very complex, the controller might behave funny.")]
         public bool IncludeChildrenInCom = false;
         [Tooltip("If true, the mass of all children will be negated before control is applied.")]
@@ -71,6 +72,7 @@ namespace Smarc.GenericControllers
             COM.parent = robotBody.transform;
             COM.position = globalCom;
         }
+
 
         void FixedUpdate()
         {
@@ -119,6 +121,7 @@ namespace Smarc.GenericControllers
 
             float requiredForce = pidAcc;
             if (CompensateGravity) requiredForce += totalMass * -Physics.gravity.y;
+            requiredForce += ExtraMassToCompensate * -Physics.gravity.y;
             requiredForce = MaxForce > 0f ? Mathf.Clamp(requiredForce, -MaxForce, MaxForce) : requiredForce;
 
             Vector3 upForce = Vector3.up * requiredForce;
@@ -130,14 +133,14 @@ namespace Smarc.GenericControllers
         void OnDrawGizmosSelected()
         {
             // Draw target altitude line
-            Gizmos.color = Color.green;
+            Gizmos.color = Color.purple;
             Transform tf = this.transform;
             if(RobotAB != null)
                 tf = RobotAB.transform;
             else if(RobotRB != null)
                 tf = RobotRB.transform;
             Vector3 startPos = tf.position;
-            Vector3 endPos = new(tf.position.x, GroundLevel + TargetAltitude, tf.position.z);
+            Vector3 endPos = new(tf.position.x+0.1f, GroundLevel + TargetAltitude, tf.position.z+0.1f);
             Gizmos.DrawLine(startPos, endPos);
         }
     }
