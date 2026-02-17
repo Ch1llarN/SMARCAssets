@@ -103,21 +103,22 @@ namespace Rope
             BaseSpherical.transform.localPosition = Vector3.zero;
             MiddleSpherical.transform.localPosition = Vector3.zero;
 
+            var l = RopeLength - StartingRopeLength;
             // First, put the prismatics where they need to be when the winch is fully extended
-            var midLen = Direction.normalized * (RopeLength-StartingRopeLength) / 2f;
+            var midLen = Direction.normalized * (RopeLength-l) / 2f;
             MiddlePrismatic.transform.localPosition = midLen;
             EndPrismatic.transform.localPosition = midLen;
             SetColliders();
 
             // Then, set the prismatics to have the correct min/max limits
             var midPrismaticDrive = MiddlePrismatic.xDrive;
-            midPrismaticDrive.lowerLimit = -StartingRopeLength/2f;
-            midPrismaticDrive.upperLimit = (RopeLength-StartingRopeLength) / 2f;
+            midPrismaticDrive.lowerLimit = -l/2f;
+            midPrismaticDrive.upperLimit = (RopeLength-l) / 2f;
             MiddlePrismatic.xDrive = midPrismaticDrive;
 
             var endPrismaticDrive = EndPrismatic.xDrive;
-            endPrismaticDrive.lowerLimit = -StartingRopeLength/2f;
-            endPrismaticDrive.upperLimit = (RopeLength-StartingRopeLength) / 2f;
+            endPrismaticDrive.lowerLimit = -l/2f;
+            endPrismaticDrive.upperLimit = (RopeLength-l) / 2f;
             EndPrismatic.xDrive = endPrismaticDrive;
         }
 
@@ -138,6 +139,11 @@ namespace Rope
         public bool IsTense()
         {
             return CurrentRopeLength >= RopeLength - 0.05f;
+        }
+
+        public void EnableLoad()
+        {
+            LoadTree.SetActive(true);
         }
 
 
