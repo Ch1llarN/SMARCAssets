@@ -1,7 +1,6 @@
 using UnityEngine;
-using DefaultNamespace;
+using DefaultNamespace.Water;
 using Force;
-using UnityEngine.UIElements;
 
 /// <summary>
 /// Source: https://github.com/GaryMcWhorter/Verlet-Chain-Unity/tree/main
@@ -20,22 +19,24 @@ public class RopeVerlet : MonoBehaviour
     public ArticulationBody EndAB;
     MixedBody EndBody;
 
+    public bool Float = true;
+
 
     [Min(0f)]
     public float RopeLength = 1f;
+    public float RopeWidth = 0.1f;
     [Min(2), Tooltip("The number of chain links. Decreases performance with high values and high iteration")]
     public int SegmentCount = 10;
-    [Min(0.01f), Tooltip("The mass of each chain link, used for calculating how much force to apply to locked nodes")]
-    public float SegmentMass = 1f;
+
 
     [Space]
 
     [Header("Instanced Mesh Details")]
-    [SerializeField, Tooltip("The Mesh of chain link to render")] 
-    Mesh link;
+    [Tooltip("The Mesh of chain link to render")] 
+    public Mesh Link;
 
-    [SerializeField, Tooltip("The chain link material, must have gpu instancing enabled!")] 
-    Material linkMaterial;
+    [Tooltip("The chain link material, must have gpu instancing enabled!")] 
+    public Material RopeMaterial;
 
 
     [Header("Verlet Parameters")]
@@ -67,17 +68,11 @@ public class RopeVerlet : MonoBehaviour
     Collider[] colliderHitBuffer;
 
 
-    // Need a better way of stepping through collisions for high Gravity
-    // And high Velocity
+
+
+
+    WaterQueryModel waterQueryModel;
     Vector3 gravity;
-
-
-    [Space]
-
-    // For Debug Drawing the chain/rope
-    [Header("Line Renderer")]
-    [SerializeField, Tooltip("Width for the line renderer")] 
-    float ropeWidth = 0.1f;
 
     LineRenderer lineRenderer;
     Vector3[] linePositions;
@@ -105,7 +100,9 @@ public class RopeVerlet : MonoBehaviour
 
         colliderHitBuffer = new Collider[colliderBufferSize];
         gravity = new Vector3(0, -gravityStrength, 0);
-        lineRenderer = this.GetComponent<LineRenderer>();
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.material = RopeMaterial;
+        lineRenderer.enabled = RopeMaterial != null;
 
         // using a single dynamically created GameObject to test collisions on every node
         nodeTester = new GameObject
@@ -134,21 +131,17 @@ public class RopeVerlet : MonoBehaviour
         }
         for (int i = 0; i < SegmentCount; i++)
         {
-
             currentNodePositions[i] = startPosition;
             currentNodeRotations[i] = Quaternion.identity;
-
             previousNodePositions[i] = startPosition;
-
             matrices[i] = Matrix4x4.TRS(startPosition, Quaternion.identity, Vector3.one);
-
             startPosition.y -= nodeDistance;
-
         }
 
         // for line renderer data
         linePositions = new Vector3[SegmentCount];
 
+        if (Float) waterQueryModel = WaterQueryModel.GetWaterQueryModel();
 
     }
 
@@ -157,28 +150,32 @@ public class RopeVerlet : MonoBehaviour
     {
         DrawRope();
 
-        Mesh scaledLink = link;
-        if (link.bounds.size.z != nodeDistance)
+        if (Link != null)
         {
-            // if the link mesh isn't the correct length, scale it in the shader using instancing data
-            scaledLink = Instantiate(link);
-            float s = nodeDistance / link.bounds.size.z;
-            Vector3 scale = new Vector3(s,s,s);
-            Vector3[] vertices = scaledLink.vertices;
-            for (int i = 0; i < vertices.Length; i++)
+            Mesh scaledLink = Link;
+            if (Link.bounds.size.z != nodeDistance)
             {
-                vertices[i] = Vector3.Scale(vertices[i], scale);
+                // if the link mesh isn't the correct length, scale it in the shader using instancing data
+                scaledLink = Instantiate(Link);
+                float s = nodeDistance / Link.bounds.size.z;
+                Vector3 scale = new Vector3(s,s,s);
+                Vector3[] vertices = scaledLink.vertices;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    vertices[i] = Vector3.Scale(vertices[i], scale);
+                }
+                scaledLink.vertices = vertices;
+                scaledLink.RecalculateBounds();
             }
-            scaledLink.vertices = vertices;
-            scaledLink.RecalculateBounds();
+            // Instanced drawing here is really performant over using GameObjects
+            Graphics.DrawMeshInstanced(scaledLink, 0, RopeMaterial, matrices, SegmentCount);
         }
-        // Instanced drawing here is really performant over using GameObjects
-        Graphics.DrawMeshInstanced(scaledLink, 0, linkMaterial, matrices, SegmentCount);
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         Simulate();
+        if (Float) SetOnWaterSurface();
 
         for (int i = 0; i < iterations; i++)
         {
@@ -188,13 +185,30 @@ public class RopeVerlet : MonoBehaviour
             {
                 AdjustCollisions();
             }
+            PullOnEnd(StartBody);
+            PullOnEnd(EndBody);
         }
+
 
         SetAngles();
         TranslateMatrices();
     }
 
-    private void Simulate()
+    void SetOnWaterSurface()
+    {
+        if (waterQueryModel == null) return;
+
+        for (int i = 0; i < SegmentCount; i++)
+        {
+            float waterLevel = waterQueryModel.GetWaterLevelAt(currentNodePositions[i]);
+            if (currentNodePositions[i].y < waterLevel)
+            {
+                currentNodePositions[i] = new Vector3(currentNodePositions[i].x, waterLevel, currentNodePositions[i].z);
+            }   
+        }
+    }
+
+    void Simulate()
     {
         var fixedDt = Time.fixedDeltaTime;
         for (int i = 0; i < SegmentCount; i++)
@@ -212,8 +226,14 @@ public class RopeVerlet : MonoBehaviour
             currentNodePositions[i] = newPos;
         }
     }
+
+    Transform GetTopParent(Transform t)
+    {
+        if (t.parent == null) return t;
+        return GetTopParent(t.parent);
+    }
     
-    private void AdjustCollisions()
+    void AdjustCollisions()
     {
         for (int i = 0; i < SegmentCount; i++)
         {
@@ -225,24 +245,35 @@ public class RopeVerlet : MonoBehaviour
             {
 
                 // check if this collider is one of our end locks, if so skip it
-                if (StartBody.isValid && colliderHitBuffer[n].gameObject == StartBody.gameObject) continue;
-                if (EndBody.isValid && colliderHitBuffer[n].gameObject == EndBody.gameObject) continue;
+                if (StartBody.isValid && GetTopParent(colliderHitBuffer[n].transform) == GetTopParent(StartBody.transform)) continue;
+                if (EndBody.isValid && GetTopParent(colliderHitBuffer[n].transform) == GetTopParent(EndBody.transform)) continue;
                 Vector3 colliderPosition = colliderHitBuffer[n].transform.position;
                 Quaternion colliderRotation = colliderHitBuffer[n].gameObject.transform.rotation;
 
-                Vector3 dir;
-                float distance;
+                Physics.ComputePenetration(nodeCollider, currentNodePositions[i], Quaternion.identity, colliderHitBuffer[n], colliderPosition, colliderRotation, out Vector3 dir, out float distance);
 
-                Physics.ComputePenetration(nodeCollider, currentNodePositions[i], Quaternion.identity, colliderHitBuffer[n], colliderPosition, colliderRotation, out dir, out distance);
-                
                 currentNodePositions[i] += dir * distance;
             }
         }
 
-    }    
+    }
+
+    void PullOnEnd(MixedBody body)
+    {
+        if (!body.isValid) return;
+
+        Vector3 endPosition = currentNodePositions[body == StartBody ? 0 : SegmentCount - 1];
+        Vector3 forceDirection = (endPosition - body.position).normalized;
+        Debug.DrawRay(body.position, forceDirection, Color.red);
+        float distance = Vector3.Distance(endPosition, body.position);
+        float forceMagnitude = distance * stiffness * 100f;
+        Vector3 force = forceDirection * forceMagnitude;
+
+        body.AddForceAtPosition(force, endPosition, ForceMode.Force);
+    }
 
 
-    private void ApplyConstraint()
+    void ApplyConstraint()
     {
         if(StartBody.isValid) currentNodePositions[0] = StartBody.position;
         if(EndBody.isValid) currentNodePositions[SegmentCount - 1] = EndBody.position;
@@ -336,10 +367,10 @@ public class RopeVerlet : MonoBehaviour
         }
     }
 
-    private void DrawRope()
+    void DrawRope()
     {
-        lineRenderer.startWidth = ropeWidth;
-        lineRenderer.endWidth = ropeWidth;
+        lineRenderer.startWidth = RopeWidth;
+        lineRenderer.endWidth = RopeWidth;
 
         for (int n = 0; n < SegmentCount; n++)
         {

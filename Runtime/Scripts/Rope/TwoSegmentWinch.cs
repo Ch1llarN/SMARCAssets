@@ -31,6 +31,9 @@ namespace Rope
         public float MinRopeLength = 0.2f;
         public float StartingRopeLength = 2f;
         public float ColliderThickness = 0.1f;
+        public Material RopeMaterial;
+        public float RopeVisualThickness = 0.05f;
+        LineRenderer lineRenderer;
 
         [Header("Current State")]
         public float CurrentRopeLength;
@@ -54,7 +57,14 @@ namespace Rope
                     if (col != col2)
                         Physics.IgnoreCollision(col, col2);
                 
-            if (DisableLoadAtAwake) LoadTree.SetActive(false);            
+            if (DisableLoadAtAwake) LoadTree.SetActive(false);
+
+            // Add a line renderer that goes between the ends and middle joint
+            lineRenderer = gameObject.AddComponent<LineRenderer>();
+            lineRenderer.positionCount = 3; 
+            lineRenderer.material = RopeMaterial;
+            lineRenderer.startWidth = RopeVisualThickness;
+            lineRenderer.endWidth = RopeVisualThickness;
         }
 
         void FixedUpdate()
@@ -82,6 +92,11 @@ namespace Rope
             }
 
             SetColliders();
+
+            // Update the line renderer to visually connect the joints
+            lineRenderer.SetPosition(0, BaseSpherical.transform.position);
+            lineRenderer.SetPosition(1, MiddlePrismatic.transform.position);
+            lineRenderer.SetPosition(2, EndPrismatic.transform.position);
         }
 
         void SetColliders()

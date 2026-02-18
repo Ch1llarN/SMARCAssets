@@ -56,6 +56,12 @@ namespace Rope
         void Awake()
         {
             ApplySettings();   
+            // Ignore all self-collisions
+            Collider[] colliders = GetComponentsInChildren<Collider>();
+            foreach(var col in colliders)
+                foreach(var col2 in colliders)
+                    if (col != col2)
+                        Physics.IgnoreCollision(col, col2);
         }
 
         void FixedUpdate()

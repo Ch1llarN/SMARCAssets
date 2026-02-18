@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Smarc.GenericControllers;
 using dji;
 
 namespace SmarcGUI.KeyboardControllers
@@ -8,6 +7,8 @@ namespace SmarcGUI.KeyboardControllers
     [RequireComponent(typeof(DJIController))]
     public class DJIKeyboardController : KeyboardControllerBase
     {
+        public float HorizontalSpeed = 0.2f;
+        public float VerticalSpeed = 0.8f;
         InputAction forwardAction, strafeAction, tvAction;
         DJIController djiCtrl;
 
@@ -34,7 +35,7 @@ namespace SmarcGUI.KeyboardControllers
 
             if (Mathf.Abs(forwardValue) != 0 || Mathf.Abs(strafeValue) != 0 || Mathf.Abs(verticalValue) != 0 || Mathf.Abs(yawValue) != 0)
             {
-                djiCtrl.CommandFLUYawRate01(forwardValue, -strafeValue, verticalValue, yawValue);
+                djiCtrl.CommandFLUYawRate01(forwardValue * HorizontalSpeed, -strafeValue * HorizontalSpeed, verticalValue * VerticalSpeed, yawValue);
             }
         }
 
