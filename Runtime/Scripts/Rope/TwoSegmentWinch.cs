@@ -1,6 +1,7 @@
 using UnityEngine;
+using Smarc.Rope;
 
-namespace Rope
+namespace Smarc.Rope
 {
     public class TwoSegmentWinch : MonoBehaviour
     {

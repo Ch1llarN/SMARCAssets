@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-using Rope;
+using Smarc.Rope;
 
 namespace Editor.Scripts
 {

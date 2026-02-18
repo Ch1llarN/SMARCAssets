@@ -1,5 +1,4 @@
 using Force;
-using Rope;
 using Smarc.GenericControllers;
 using UnityEngine;
 using VehicleComponents.Actuators;
