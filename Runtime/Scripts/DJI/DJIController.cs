@@ -11,7 +11,6 @@ namespace dji
     {
         Idle,
         TakingOff,
-        Hovering,
         Flying,
         Landing
     }
@@ -57,9 +56,12 @@ namespace dji
         AttitudeController attCtrl;
         HorizontalController horizCtrl;
         
-        Vector3 commandedVelocity = Vector3.zero;
+        Vector3 commandedHorizontalVelocity = Vector3.zero;
+        float lastHorizontalCommandTime = -1f;
+        float commandedVerticalVelocity = 0f;
+        float lastVerticalCommandTime = -1f;
         float commandedYawRate = 0f;
-        float lastCommandTime = 0f;
+        float lastYawCommandTime = -1f;
 
         MixedBody robotBody;
 
@@ -68,20 +70,24 @@ namespace dji
         void Awake()
         {
             altCtrl = GetComponent<AltitudeController>();
-            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-            altCtrl.TargetVelocity = 0f;
-
             attCtrl = GetComponent<AttitudeController>();
+            horizCtrl = GetComponent<HorizontalController>();
+            robotBody = new MixedBody(altCtrl.RobotAB, altCtrl.RobotRB);
+
+            homeAltitude = robotBody.position.y;
+            
+            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+            altCtrl.TargetVelocity = 0f;
+            altCtrl.TargetAltitude = robotBody.position.y;
+
             attCtrl.YawControlMode = YawControlMode.YawRate;
             attCtrl.TargetYawRate = 0f;
             attCtrl.TiltMode = TiltMode.ReactToAcceleration;
 
-            horizCtrl = GetComponent<HorizontalController>();
-            horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+            horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
             horizCtrl.TargetVelocity = Vector3.zero;
+            horizCtrl.TargetUnityPosition = robotBody.position;
 
-            robotBody = new MixedBody(altCtrl.RobotAB, altCtrl.RobotRB);
-            homeAltitude = robotBody.position.y;
 
             Ignition(StartInAir);
             if (StartInAir)
@@ -102,7 +108,6 @@ namespace dji
 
             if (!GotControl) return;
             
-
             switch(flightState)
             {
                 case DroneFlightState.TakingOff:
@@ -112,21 +117,62 @@ namespace dji
                     Landing();
                     break;
                 case DroneFlightState.Flying:
-                    // if we haven't received a command in a while, station keep still in the air
-                    float timeout = 0.2f;
-                    if (Time.time - lastCommandTime > timeout)
-                    {   
-                        Hover();
-                        break;
-                    }
-                    CommandVelocities();
+                    CommandHorizontal();
+                    CommandVertical();
+                    CommandYawRate();
                     break;
                 case DroneFlightState.Idle:
-                case DroneFlightState.Hovering:
                 default:
                     // do nothing
                     break;
             }
+        }
+
+        void CommandHorizontal(float timeout=0.2f)
+        {
+            if (Time.time - lastHorizontalCommandTime > timeout)
+            {
+                commandedHorizontalVelocity = Vector3.zero;
+                horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
+                if (lastHorizontalCommandTime > 0)
+                {
+                    horizCtrl.TargetVelocity = Vector3.zero;
+                    horizCtrl.TargetUnityPosition = robotBody.position;
+                    lastHorizontalCommandTime = -1;
+                }
+            }
+            else
+            {
+                horizCtrl.TargetVelocity = commandedHorizontalVelocity;
+                horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+            }
+        }
+
+        void CommandVertical(float timeout=0.2f)
+        {
+            if (Time.time - lastVerticalCommandTime > timeout)
+            {
+                commandedVerticalVelocity = 0f; 
+                altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+                if (lastVerticalCommandTime > 0)
+                {
+                    altCtrl.TargetVelocity = 0f;
+                    altCtrl.TargetAltitude = robotBody.position.y;
+                    lastVerticalCommandTime = -1;
+                }
+            }
+            else
+            {
+                altCtrl.TargetVelocity = commandedVerticalVelocity;
+                altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
+            }
+        }
+
+        void CommandYawRate(float timeout=0.2f)
+        {
+            attCtrl.YawControlMode = YawControlMode.YawRate;
+            if (Time.time - lastYawCommandTime > timeout) commandedYawRate = 0f;
+            attCtrl.TargetYawRate = commandedYawRate;
         }
 
         void TakingOff()
@@ -154,41 +200,6 @@ namespace dji
                 Debug.Log("Landing complete, now idle");
                 Ignition(false);
             }
-        }
-
-        void Hover()
-        {
-            Vector3 horizontalVelocity = new(robotBody.velocity.x, 0f, robotBody.velocity.z);
-            if (horizontalVelocity.magnitude > 0.1f)
-            {
-                horizCtrl.ControlMode = HorizontalControlMode.Velocity;
-                horizCtrl.TargetVelocity = Vector3.zero;
-            }
-            else
-            {
-                horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
-                horizCtrl.TargetUnityPosition = robotBody.position;
-            }
-
-            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
-            altCtrl.TargetAltitude = robotBody.position.y;
-
-            attCtrl.YawControlMode = YawControlMode.YawRate;
-            attCtrl.TargetYawRate = 0f;
-
-            if (robotBody.velocity.magnitude <= 0.1f) flightState = DroneFlightState.Hovering;
-        }
-
-        void CommandVelocities()
-        {
-            horizCtrl.ControlMode = HorizontalControlMode.Velocity;
-            horizCtrl.TargetVelocity = commandedVelocity;
-
-            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-            altCtrl.TargetVelocity = commandedVelocity.y;
-
-            attCtrl.YawControlMode = YawControlMode.YawRate;
-            attCtrl.TargetYawRate = commandedYawRate;
         }
 
         public bool TakeOff()
@@ -326,10 +337,21 @@ namespace dji
                 return;
             }
             // Unity is RUF, do the mapping here.
-            commandedVelocity = new Vector3(-left, up, forward);
-            commandedYawRate = -yawRate;
-            lastCommandTime = Time.time;
-            flightState = DroneFlightState.Flying;
+            if (forward != 0f || left != 0f)
+            {
+                commandedHorizontalVelocity = new Vector3(-left, 0f, forward);
+                lastHorizontalCommandTime = Time.time;
+            }
+            if (up != 0f)
+            {
+                commandedVerticalVelocity = up;
+                lastVerticalCommandTime = Time.time;
+            }
+            if (yawRate != 0f)
+            {
+                commandedYawRate = -yawRate;
+                lastYawCommandTime = Time.time;
+            }
         }
 
         public void CommandFLUYawRate01(float forward, float left, float up, float yawRate)
