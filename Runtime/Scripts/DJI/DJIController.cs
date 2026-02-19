@@ -2,6 +2,7 @@ using Force;
 using Smarc.GenericControllers;
 using UnityEngine;
 using VehicleComponents.Actuators;
+using VehicleComponents.Sensors;
 
 namespace dji
 {
@@ -27,6 +28,12 @@ namespace dji
         public bool GotControl = true;
         public DroneFlightState flightState = DroneFlightState.Idle;
 
+        [Header("Payload")]
+        public LoadCell WinchLoadCell;
+        [Tooltip("If true, the alt. controller will be given this load as extra mass to compensate for.")]
+        public bool CompensateForPayload = true; 
+
+
         [Header("Propellers(Upper)")]
         public Propeller frontLeftPropeller;
         public Propeller frontRightPropeller;
@@ -49,8 +56,12 @@ namespace dji
         AttitudeController attCtrl;
         HorizontalController horizCtrl;
         
-        Vector3 commandedVelocity = Vector3.zero;
+        Vector3 commandedHorizontalVelocity = Vector3.zero;
+        float lastHorizontalCommandTime = -1f;
+        float commandedVerticalVelocity = 0f;
+        float lastVerticalCommandTime = -1f;
         float commandedYawRate = 0f;
+        float lastYawCommandTime = -1f;
 
         MixedBody robotBody;
 
@@ -59,20 +70,24 @@ namespace dji
         void Awake()
         {
             altCtrl = GetComponent<AltitudeController>();
-            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-            altCtrl.TargetVelocity = 0f;
-
             attCtrl = GetComponent<AttitudeController>();
+            horizCtrl = GetComponent<HorizontalController>();
+            robotBody = new MixedBody(altCtrl.RobotAB, altCtrl.RobotRB);
+
+            homeAltitude = robotBody.position.y;
+            
+            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+            altCtrl.TargetVelocity = 0f;
+            altCtrl.TargetAltitude = robotBody.position.y;
+
             attCtrl.YawControlMode = YawControlMode.YawRate;
             attCtrl.TargetYawRate = 0f;
             attCtrl.TiltMode = TiltMode.ReactToAcceleration;
 
-            horizCtrl = GetComponent<HorizontalController>();
-            horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+            horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
             horizCtrl.TargetVelocity = Vector3.zero;
+            horizCtrl.TargetUnityPosition = robotBody.position;
 
-            robotBody = new MixedBody(altCtrl.RobotAB, altCtrl.RobotRB);
-            homeAltitude = robotBody.position.y;
 
             Ignition(StartInAir);
             if (StartInAir)
@@ -89,50 +104,101 @@ namespace dji
         {
             RPMsFromMotion();
 
-            if (!GotControl) return;
+            if (CompensateForPayload && WinchLoadCell != null) altCtrl.ExtraMassToCompensate = WinchLoadCell.Weight;
 
+            if (!GotControl) return;
+            
             switch(flightState)
             {
                 case DroneFlightState.TakingOff:
-                    altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
-                    altCtrl.TargetAltitude = homeAltitude + takeOffAltitude;
-                    if (robotBody.position.y >= altCtrl.TargetAltitude - altCtrl.AltitudeTolerance)
-                    {
-                        flightState = DroneFlightState.Flying;
-                        Debug.Log("Takeoff complete, now flying");
-                    }
+                    TakingOff();
                     break;
-
                 case DroneFlightState.Landing:
-                    altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-                    altCtrl.TargetVelocity = -altCtrl.DescentRate;
-                    bool stopped = Mathf.Abs(robotBody.velocity.y) <= 0.2f;
-                    if (stopped) stoppedFor += Time.fixedDeltaTime;
-                    else stoppedFor = 0f;
-                    bool stuck = stoppedFor >= 1.0f; // if we've been stopped for 1 second, consider ourselves stuck
-                    if (stuck)
-                    {
-                        flightState = DroneFlightState.Idle;
-                        Debug.Log("Landing complete, now idle");
-                        Ignition(false);
-                    }
+                    Landing();
                     break;
-
                 case DroneFlightState.Flying:
-                    horizCtrl.ControlMode = HorizontalControlMode.Velocity;
-                    horizCtrl.TargetVelocity = commandedVelocity;
-
-                    altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-                    altCtrl.TargetVelocity = commandedVelocity.y;
-
-                    attCtrl.YawControlMode = YawControlMode.YawRate;
-                    attCtrl.TargetYawRate = commandedYawRate;
-
+                    CommandHorizontal();
+                    CommandVertical();
+                    CommandYawRate();
                     break;
                 case DroneFlightState.Idle:
                 default:
                     // do nothing
                     break;
+            }
+        }
+
+        void CommandHorizontal(float timeout=0.2f)
+        {
+            if (Time.time - lastHorizontalCommandTime > timeout)
+            {
+                commandedHorizontalVelocity = Vector3.zero;
+                horizCtrl.ControlMode = HorizontalControlMode.UnityPosition;
+                if (lastHorizontalCommandTime > 0)
+                {
+                    horizCtrl.TargetVelocity = Vector3.zero;
+                    horizCtrl.TargetUnityPosition = robotBody.position;
+                    lastHorizontalCommandTime = -1;
+                }
+            }
+            else
+            {
+                horizCtrl.TargetVelocity = commandedHorizontalVelocity;
+                horizCtrl.ControlMode = HorizontalControlMode.Velocity;
+            }
+        }
+
+        void CommandVertical(float timeout=0.2f)
+        {
+            if (Time.time - lastVerticalCommandTime > timeout)
+            {
+                commandedVerticalVelocity = 0f; 
+                altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+                if (lastVerticalCommandTime > 0)
+                {
+                    altCtrl.TargetVelocity = 0f;
+                    altCtrl.TargetAltitude = robotBody.position.y;
+                    lastVerticalCommandTime = -1;
+                }
+            }
+            else
+            {
+                altCtrl.TargetVelocity = commandedVerticalVelocity;
+                altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
+            }
+        }
+
+        void CommandYawRate(float timeout=0.2f)
+        {
+            attCtrl.YawControlMode = YawControlMode.YawRate;
+            if (Time.time - lastYawCommandTime > timeout) commandedYawRate = 0f;
+            attCtrl.TargetYawRate = commandedYawRate;
+        }
+
+        void TakingOff()
+        {
+            altCtrl.ControlMode = AltitudeControlMode.AbsoluteAltitude;
+            altCtrl.TargetAltitude = homeAltitude + takeOffAltitude;
+            if (robotBody.position.y >= altCtrl.TargetAltitude - altCtrl.AltitudeTolerance)
+            {
+                flightState = DroneFlightState.Flying;
+                Debug.Log("Takeoff complete, now flying");
+            }
+        }
+
+        void Landing()
+        {
+            altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
+            altCtrl.TargetVelocity = -altCtrl.DescentRate;
+            bool stopped = Mathf.Abs(robotBody.velocity.y) <= 0.2f;
+            if (stopped) stoppedFor += Time.fixedDeltaTime;
+            else stoppedFor = 0f;
+            bool stuck = stoppedFor >= 1.0f; // if we've been stopped for 1 second, consider ourselves stuck
+            if (stuck)
+            {
+                flightState = DroneFlightState.Idle;
+                Debug.Log("Landing complete, now idle");
+                Ignition(false);
             }
         }
 
@@ -271,8 +337,26 @@ namespace dji
                 return;
             }
             // Unity is RUF, do the mapping here.
-            commandedVelocity = new Vector3(-left, up, forward);
-            commandedYawRate = -yawRate;
+            if (forward != 0f || left != 0f)
+            {
+                commandedHorizontalVelocity = new Vector3(-left, 0f, forward);
+                lastHorizontalCommandTime = Time.time;
+            }
+            if (up != 0f)
+            {
+                commandedVerticalVelocity = up;
+                lastVerticalCommandTime = Time.time;
+            }
+            if (yawRate != 0f)
+            {
+                commandedYawRate = -yawRate;
+                lastYawCommandTime = Time.time;
+            }
+        }
+
+        public void CommandFLUYawRate01(float forward, float left, float up, float yawRate)
+        {
+            CommandFLUYawRate(forward * horizCtrl.MaxSpeed, left * horizCtrl.MaxSpeed, up * altCtrl.AscentRate, yawRate * attCtrl.DesiredYawRate);
         }
     }
 }

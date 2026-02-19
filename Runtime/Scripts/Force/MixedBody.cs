@@ -169,7 +169,7 @@ namespace Force
         /// Get the total mass of the entire connected articulation body chain.
         /// Crawls the entire articulation tree, so be careful running this in updates...
         /// </summary>
-        public float GetTotalConnectedMass()
+        public float GetTotalConnectedMass(bool includeChildren = true, bool ignoreNonGravityBodies = true)
         {
             // too much hassle to follow through an arbitrary system
             // of rigidbodies and joints...
@@ -177,10 +177,12 @@ namespace Force
 
             if (childrenABs == null) childrenABs = ab.GetComponentsInChildren<ArticulationBody>();
             float totalMass = ab.mass;
+            if (!includeChildren) return totalMass;
             foreach (var body in childrenABs)
             {
                 if (body == ab) continue;
                 if (!body.isActiveAndEnabled) continue;
+                if (ignoreNonGravityBodies && !body.useGravity) continue;
                 totalMass += body.mass;
             }
             return totalMass;
@@ -190,7 +192,7 @@ namespace Force
         /// Get the center of mass of the entire connected articulation body chain in world coords.
         /// Crawls the entire articulation tree, so be careful running this in updates...
         /// </summary>
-        public Vector3 GetTotalConnectedCenterOfMass(bool includeChildren = true)
+        public Vector3 GetTotalConnectedCenterOfMass(bool includeChildren = true, bool ignoreNonGravityBodies = true)
         {
             Vector3 com = (position + transform.TransformVector(centerOfMass)) * mass;
             if (!includeChildren) return com/mass;
@@ -201,6 +203,7 @@ namespace Force
             {
                 if (body == ab) continue;
                 if (!body.isActiveAndEnabled) continue;
+                if (ignoreNonGravityBodies && !body.useGravity) continue;
                 totalMass += body.mass;
                 com += (body.transform.position + body.transform.TransformVector(body.centerOfMass)) * body.mass;
             }

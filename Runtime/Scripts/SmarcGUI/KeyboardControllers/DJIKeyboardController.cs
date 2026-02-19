@@ -1,83 +1,52 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Smarc.GenericControllers;
 using dji;
 
 namespace SmarcGUI.KeyboardControllers
 {
-    [RequireComponent(typeof(AltitudeController))]
-    [RequireComponent(typeof(AttitudeController))]
-    [RequireComponent(typeof(HorizontalController))]
     [RequireComponent(typeof(DJIController))]
     public class DJIKeyboardController : KeyboardControllerBase
     {
-        InputAction forwardAction, strafeAction, verticalAction, tvAction;
-        AltitudeController altCtrl;
-        AttitudeController attCtrl;
-        HorizontalController horizCtrl;
+        public float HorizontalSpeed = 0.2f;
+        public float VerticalSpeed = 0.8f;
+        public float BoostMultiplier = 5f;
+        InputAction forwardAction, strafeAction, tvAction, boostAction;
         DJIController djiCtrl;
 
         void Awake()
         {
             forwardAction = InputSystem.actions.FindAction("Robot/Forward");
             strafeAction = InputSystem.actions.FindAction("Robot/Strafe");
-            verticalAction = InputSystem.actions.FindAction("Robot/UpDown");
             tvAction = InputSystem.actions.FindAction("Robot/ThrustVector");
+            boostAction = InputSystem.actions.FindAction("Robot/Boost");
             
-            altCtrl = GetComponent<AltitudeController>();
-            attCtrl = GetComponent<AttitudeController>();
-            horizCtrl = GetComponent<HorizontalController>();
             djiCtrl = GetComponent<DJIController>();
         }
 
-        void OnEnable()
-        {
-            djiCtrl.ReleaseControl();
-        }
-
-        void OnDisable()
-        {
-            djiCtrl.TakeControl();
-        }
+        void OnEnable(){}
+        void OnDisable(){}
+        public override void OnReset(){}
 
         void Update()
         {
             var forwardValue = forwardAction.ReadValue<float>();
             var strafeValue = strafeAction.ReadValue<float>();
             var tvValue = tvAction.ReadValue<Vector2>();
-            var yawValue = tvValue.x;
-            var verticalValue = verticalAction.ReadValue<float>();
+            var yawValue = -tvValue.x;
+            var verticalValue = tvValue.y;
+            var boostValue = boostAction.ReadValue<float>();
 
-            switch (djiCtrl.flightState)
+
+            if (Mathf.Abs(forwardValue) != 0 || Mathf.Abs(strafeValue) != 0 || Mathf.Abs(verticalValue) != 0 || Mathf.Abs(yawValue) != 0)
             {
-                case DroneFlightState.Flying:
-                    horizCtrl.ControlMode = HorizontalControlMode.Velocity;
-                    horizCtrl.TargetVelocity = new Vector3(strafeValue, 0f, forwardValue).normalized * horizCtrl.MaxSpeed;
-
-                    attCtrl.YawControlMode = YawControlMode.YawRate;
-                    attCtrl.TargetYawRate = yawValue * attCtrl.DesiredYawRate;
-
-                    altCtrl.ControlMode = AltitudeControlMode.VerticalVelocity;
-                    float e = 0.01f;
-                    if (verticalValue > e) altCtrl.TargetVelocity = altCtrl.AscentRate;
-                    else if (verticalValue < -e) altCtrl.TargetVelocity = -altCtrl.DescentRate;
-                    else altCtrl.TargetVelocity = 0f;
-
-                    break;
-                case DroneFlightState.Idle:
-                case DroneFlightState.Landing:
-                case DroneFlightState.TakingOff:
-                default:
-                    break;
+                forwardValue *= boostValue > 0 ? BoostMultiplier : 1f;
+                strafeValue *= boostValue > 0 ? BoostMultiplier : 1f;
+                verticalValue *= boostValue > 0 ? BoostMultiplier : 1f;
+                yawValue *= boostValue > 0 ? BoostMultiplier : 1f;
+                djiCtrl.CommandFLUYawRate01(forwardValue * HorizontalSpeed, -strafeValue * HorizontalSpeed, verticalValue * VerticalSpeed, yawValue);
             }
         }
 
-        public override void OnReset()
-        {
-            horizCtrl.TargetVelocity = Vector3.zero;
-            attCtrl.TargetYawRate = 0f;
-            altCtrl.TargetVelocity = 0f;
-        }
 
     }
 }
