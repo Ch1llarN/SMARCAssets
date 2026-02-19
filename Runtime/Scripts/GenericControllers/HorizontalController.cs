@@ -75,7 +75,7 @@ namespace Smarc.GenericControllers
             }
 
             var currentSpeed = robotBody.localVelocity.magnitude;
-            if (currentSpeed > MaxSpeed*1.1f)
+            if (currentSpeed > MaxSpeed*10f)
             {
                 Debug.Log($"Robot moving too fast for horizontal control! currentSpeed: {currentSpeed}");
                 return;
