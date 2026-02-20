@@ -462,7 +462,8 @@ namespace SmarcGUI.Connections
                             }
                             break;  
                         case "feedback":
-                            guiState.Log($"{topic}\n{payload}");
+                            BaseFeedback feedback = new(payload);
+                            guiState.Log($"{topic}\n{feedback.ToString()}");
                             break;
                         default:
                             guiState.Log($"{topic}\n{payload}");
