@@ -40,6 +40,11 @@ namespace Smarc.GenericControllers
 
         [Header("Velocity Settings")]
         public float TargetVelocity = 0.0f;
+        [Tooltip("Depending on the vehicle, very low targets can lead to PID control being dumb. Set to 0 to disable.")]
+        public float MinimumDescentTargetVelocity = 0f;
+        [Tooltip("Depending on the vehicle, very low targets can lead to PID control being dumb. Set to 0 to disable.")]
+        public float MinimumAscentTargetVelocity = 0f;
+
 
         [Header("Position Settings")]
         public float TargetAltitude = 10.0f;
@@ -98,6 +103,12 @@ namespace Smarc.GenericControllers
                 if (Mathf.Abs(diff) <= AltitudeTolerance) TargetVelocity = 0f;
                 else TargetVelocity = Mathf.Sign(diff) * ((diff > 0) ? AscentRate : DescentRate);
             }
+
+            // avoid very low target velocities...
+            bool ascending = TargetVelocity > 0f;
+            bool descending = TargetVelocity < 0f;
+            if (ascending && MinimumAscentTargetVelocity > 0f && TargetVelocity < MinimumAscentTargetVelocity) TargetVelocity = MinimumAscentTargetVelocity;
+            if (descending && MinimumDescentTargetVelocity > 0f && TargetVelocity > -MinimumDescentTargetVelocity) TargetVelocity = -MinimumDescentTargetVelocity;
             
             VelocityControl();
         }

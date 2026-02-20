@@ -457,7 +457,7 @@ namespace SmarcGUI.Connections
                                     robotgui.OnPongResponseReceived(pong);
                                     break;
                                 default:
-                                    guiState.Log($"{topic}\n{payload}");
+                                    guiState.Log($"{topic}\n{response.ToString()}");
                                     break;
                             }
                             break;  

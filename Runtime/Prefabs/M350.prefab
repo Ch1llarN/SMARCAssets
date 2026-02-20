@@ -293,12 +293,14 @@ MonoBehaviour:
   DescentRate: 1
   MaxForce: 0
   TargetVelocity: 0
+  MinimumDescentTargetVelocity: 0
+  MinimumAscentTargetVelocity: 0
   TargetAltitude: 10
   AltitudeTolerance: 0.15
   GroundLevel: 0
-  VelKp: 10
+  VelKp: 200
   VelKi: 0
-  VelKd: 0.1
+  VelKd: 1
   VelIntegratorLimit: 5
 --- !u!114 &2789188956278922749
 MonoBehaviour:
