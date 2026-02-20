@@ -3449,8 +3449,8 @@ MonoBehaviour:
   NotARobot: 0
   frequency: 30
   ignoreSensorState: 0
-  flipVertically: 0
-  flipHorizontally: 1
+  flipVertically: 1
+  flipHorizontally: 0
 --- !u!114 &8838907660850394909
 MonoBehaviour:
   m_ObjectHideFlags: 0
