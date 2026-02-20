@@ -1591,6 +1591,7 @@ GameObject:
   - component: {fileID: 6238609009616977672}
   - component: {fileID: 7287026152824837853}
   - component: {fileID: 3832318968644707678}
+  - component: {fileID: 3279121762940111282}
   m_Layer: 0
   m_Name: Winch
   m_TagString: Untagged
@@ -1672,6 +1673,22 @@ MonoBehaviour:
   Weight: 0
   joint: {fileID: 0}
   body: {fileID: 1215736550508097657}
+--- !u!114 &3279121762940111282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5022305806194591691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c46e0240fc40324428fee17d50a9150f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SMARC.SMARCAssets::ROS.Publishers.LoadCell_Pub
+  topic: sensor/load_cell_weight
+  NotARobot: 0
+  frequency: 10
+  ignoreSensorState: 0
 --- !u!1 &5220342865308887040
 GameObject:
   m_ObjectHideFlags: 0
