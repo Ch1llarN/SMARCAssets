@@ -9,7 +9,6 @@ namespace SmarcGUI.MissionPlanning.Tasks
         {
             Name = "alars-bt";
             Description = "Run the entire ALARS system";
-            Params.Add("initial_travel_alt", 25.0f);
             Params.Add("search_position", new GeoPoint());
             Params.Add("delivery_position", new GeoPoint());
             Params.Add("forward_distance", 2.0f);
