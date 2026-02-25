@@ -110,6 +110,9 @@ namespace SmarcGUI.MissionPlanning.Tasks
                         case "auv-hydrobatic-move-path":
                             paramType = typeof(List<AuvHydrobaticPoint>);
                             break;
+                        case "smarc-start-geofence":
+                            paramType = typeof(List<GeoPoint>);
+                            break;
                         default:
                             break;
                     }
