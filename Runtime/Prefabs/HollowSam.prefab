@@ -466,6 +466,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7079169103482220130}
+  - component: {fileID: 6821077651490645277}
   m_Layer: 0
   m_Name: HollowSam
   m_TagString: Untagged
@@ -489,6 +490,19 @@ Transform:
   - {fileID: 8506624182584504386}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6821077651490645277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2921957018222759010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fba5fd74d37a6cf4284698624eb8f6aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
+  IsBaseLink: 0
 --- !u!1 &3042873385483091841
 GameObject:
   m_ObjectHideFlags: 0
