@@ -341,7 +341,7 @@ MonoBehaviour:
   SegmentCount: 100
   BodyPullMultiplier: 30
   Link: {fileID: 0}
-  RopeMaterial: {fileID: 2100000, guid: 26bbab7733c52ba43accdcce9c5853b3, type: 2}
+  RopeMaterial: {fileID: 2100000, guid: fdeaac0b8e5cf5e48a84b4f3e7d445a0, type: 2}
   nodeColliderRadius: 0.2
   gravityStrength: 0.1
   velocityDampen: 0.95
